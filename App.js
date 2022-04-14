@@ -1,5 +1,5 @@
-import React from 'react';
-import { Text, View, Button } from 'react-native';
+import React, { useState } from 'react';
+import { Text, View, Button,TextInput } from 'react-native';
 import { ApolloClient, InMemoryCache, ApolloProvider, gql, useQuery, useMutation } from '@apollo/client';
 
 // Initialize Apollo Client
@@ -21,6 +21,7 @@ const GET_ACCOUNTS = gql`
     }
   }
 `;
+
 const DELETE_ACCOUNT = gql`
   mutation DeleteAccount($deleteAccountId: Int!) {
     deleteAccount(id: $deleteAccountId) {
@@ -28,9 +29,19 @@ const DELETE_ACCOUNT = gql`
     }
   }
 `;
+
+const ADD_ACCOUNT = gql`
+mutation CreateAccount($name: String) {
+  createAccount(name: $name) {
+    name
+  }
+}
+`;
+
 function ExchangeRates() {
   const { loading, error, data,refetch } = useQuery(GET_ACCOUNTS);
   const [DeleteAccount, { }] = useMutation(DELETE_ACCOUNT);
+  
 
   return data !== undefined && data.Accounts.map(({ id, name, balance }) => (
     <View key={id} style={{ marginTop: 100 }}>
@@ -45,10 +56,30 @@ function ExchangeRates() {
     </View>
   ));
 }
+
+function AddAccount() {
+  const [accountText,setAccountText] = useState("");
+  const { loading, error, data,refetch } = useQuery(GET_ACCOUNTS);
+  const [CreateAccount, { }] = useMutation(ADD_ACCOUNT);
+  return (
+    <View key={id} style={{ marginTop: 100 ,marginLeft:30}}>
+     <TextInput placeholder='account name' value={accountText} onChange={(e)=>setAccountText(e.nativeEvent.text)}></TextInput>
+      <Button
+        onPress={() => { CreateAccount({
+          variables: { name: accountText }});refetch()}}
+        title="Add Account"
+        color="#841584"
+      />
+    </View>
+  );
+}
+
 export default function App() {
   return (
     <ApolloProvider client={client}>
       <ExchangeRates />
+      <AddAccount />
+      
     </ApolloProvider>
   );
 }

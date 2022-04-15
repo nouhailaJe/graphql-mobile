@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Text, View, Button,TextInput } from 'react-native';
+import { Text, View, Button, TextInput, ScrollView, TouchableOpacity } from 'react-native';
 import { ApolloClient, InMemoryCache, ApolloProvider, gql, useQuery, useMutation } from '@apollo/client';
 
 // Initialize Apollo Client
@@ -7,79 +7,87 @@ const client = new ApolloClient({
   uri: 'http://localhost:4000/graphql',
   cache: new InMemoryCache()
 });
-const GET_ACCOUNTS = gql`
-  query ExampleQuery {
-    Accounts {
-      id,
-      name,
-      balance
-      transactions {
-        id
-        amount
-        created_at
-      }
-    }
-  }
-`;
 
-const DELETE_ACCOUNT = gql`
-  mutation DeleteAccount($deleteAccountId: Int!) {
-    deleteAccount(id: $deleteAccountId) {
-      id
-    }
-  }
-`;
-
-const ADD_ACCOUNT = gql`
-mutation CreateAccount($name: String) {
-  createAccount(name: $name) {
+const QUERY_ALL_USERS = gql`
+query getusers{
+users {
+   ...on UsersSuccessfulResult{
+   users {
+    id
+    age
     name
+    nationality
+    username
+   }
+   }
+   ...on UsersErrorResult{
+   message
+   }
+
+}
+}
+`
+
+const CREATE_USER_MUTATION = gql`
+mutation CreateUser($input:createUserInput!) {
+  createUser(input:$input) {
+  name
+  username
+  age 
+  nationality
   }
 }
-`;
+`
 
 function ExchangeRates() {
-  const { loading, error, data,refetch } = useQuery(GET_ACCOUNTS);
-  const [DeleteAccount, { }] = useMutation(DELETE_ACCOUNT);
-  
+  const { loading, error, data, refetch } = useQuery(QUERY_ALL_USERS);
+  const [createUser] = useMutation(CREATE_USER_MUTATION)
+  const [name, setName] = useState("");
+  const [username, setUserName] = useState("");
+  const [age, setAge] = useState(0);
+  const [nationality, setNationality] = useState("");
 
-  return data !== undefined && data.Accounts.map(({ id, name, balance }) => (
-    <View key={id} style={{ marginTop: 100 }}>
+
+  return <ScrollView style={{ marginTop: 100 }}>
+    {data !== undefined && data.users.users.map(({ name }) => (
       <Text>
-        {name}:{balance}
-      </Text>
-      <Button
-        onPress={() => {DeleteAccount({variables: { deleteAccountId: id }});refetch()}}
-        title="Delete"
-        color="#841584"
-      />
+        {name}
+      </Text>))}
+      <View style={{ height: 300 }}>
+      <TextInput placeholder='name ' value={name} onChange={(e)=>{setName(e.nativeEvent.text)}} style={{borderWidth:1,borderColor:"blue",marginVertical:5}} />
+      <TextInput placeholder='username ' value={username} onChange={(e)=>{setUserName(e.nativeEvent.text)}} style={{borderWidth:1,borderColor:"blue",marginVertical:5}} />
+      <TextInput placeholder='age ' value={age} onChange={(e)=>{setAge(Number(e.nativeEvent.text))}} style={{borderWidth:1,borderColor:"blue",marginVertical:5}} />
+      <TextInput placeholder='nationality ' value={nationality} onChange={(e)=>{setNationality(e.nativeEvent.text.toUpperCase())}} style={{borderWidth:1,borderColor:"blue",marginVertical:5}} />
+      <TouchableOpacity onPress={()=>{
+        createUser({
+          variables: {
+              input: {
+                  name,
+                  username,
+                  age,
+                  nationality
+              }
+          }
+      })
+      refetch()
+      }} style={{justifyContent:"center",alignItems:"center",alignSelf:"center",width:150,height:50}}>
+        <Text>Add User</Text>
+      </TouchableOpacity>
     </View>
-  ));
+    <View style={{ height: 300 }}>
+      <Text> </Text>
+    </View>
+  </ScrollView>
 }
 
-function AddAccount() {
-  const [accountText,setAccountText] = useState("");
-  const { loading, error, data,refetch } = useQuery(GET_ACCOUNTS);
-  const [CreateAccount, { }] = useMutation(ADD_ACCOUNT);
-  return (
-    <View key={id} style={{ marginTop: 100 ,marginLeft:30}}>
-     <TextInput placeholder='account name' value={accountText} onChange={(e)=>setAccountText(e.nativeEvent.text)}></TextInput>
-      <Button
-        onPress={() => { CreateAccount({
-          variables: { name: accountText }});refetch()}}
-        title="Add Account"
-        color="#841584"
-      />
-    </View>
-  );
-}
+
 
 export default function App() {
   return (
     <ApolloProvider client={client}>
       <ExchangeRates />
-      <AddAccount />
-      
+
+
     </ApolloProvider>
   );
 }
